@@ -109,6 +109,14 @@ with col1:
 with col2:
     st.header("🤖 DeepSeek 策略分析")
     
+    # 添加跳转按钮（顶部提示）
+    st.markdown("""
+    <div style="background-color: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #ffeeba;">
+    <b>⚠️ 如果无法显示聊天窗口：</b><br>
+    <a href="https://chat.deepseek.com" target="_blank" style="background-color: #4CAF50; color: white; padding: 8px 16px; text-align: center; text-decoration: none; display: inline-block; border-radius: 4px; margin-top: 8px;">点此跳转至DeepSeek官网</a>
+    </div>
+    """, unsafe_allow_html=True)
+    
     # 使用自定义iframe容器
     st.markdown("""
     <div class="iframe-container">
@@ -121,7 +129,11 @@ with col2:
         <div style="background-color: #e8f4f8; padding: 10px; border-radius: 5px; margin-top: 10px;">
         <b>操作指南:</b><br>
         1. 复制左侧生成的提示语<br>
-        2. 粘贴到右侧聊天窗口<br>
-        3. 如需分析表格，可直接拖拽文件到聊天窗口
+        2. 粘贴到右侧聊天窗口（或官网页面）<br>
+        3. 如需分析表格，可直接拖拽文件到聊天窗口<br><br>
+        
+        <span style="color: #d35400;">如果上方窗口无法使用：</span><br>
+        • 点击本页面顶部按钮跳转至官网<br>
+        • 在官网粘贴相同内容即可获得分析
         </div>
         """, unsafe_allow_html=True)
