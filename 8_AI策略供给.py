@@ -1,40 +1,31 @@
 import streamlit as st
 
-# 设置页面配置
 st.set_page_config(
     page_title="智能农业助手",
-    layout="wide",
-    initial_sidebar_state="collapsed"
+    layout="centered"
 )
 
-# 隐藏Streamlit默认样式
+# 创建自动重定向页面
 st.markdown("""
-<style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stApp {
-        padding: 0;
-        margin: 0;
-    }
-    .block-container {
-        padding-top: 0;
-        padding-bottom: 0;
-        padding-left: 0;
-        padding-right: 0;
-        max-width: 100%;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# 只显示聊天机器人插件
-st.markdown("""
-<div style="width: 100%; height: 100vh;">
-    <iframe
-        src="http://www.baidu.com"
-        style="width: 100%; height: 100vh;"
-        frameborder="0"
-        allow="microphone">
-    </iframe>
+<div style="text-align: center; padding: 50px;">
+    <h1>🤖 智能农业助手</h1>
+    <p>正在跳转到聊天机器人...</p>
+    <div style="margin: 30px 0;">
+        <a href="https://udify.app/chatbot/6MCrcJyUrhQwiY5P" 
+           style="background-color: #4CAF50; color: white; padding: 15px 30px; 
+                  text-decoration: none; border-radius: 5px; font-size: 16px;">
+            🚀 点击进入聊天机器人
+        </a>
+    </div>
+    <p style="color: #666; margin-top: 20px;">
+        如果页面没有自动跳转，请点击上方按钮
+    </p>
 </div>
+
+<script>
+    // 自动跳转
+    setTimeout(function() {
+        window.open('https://udify.app/chatbot/6MCrcJyUrhQwiY5P', '_blank');
+    }, 2000);
+</script>
 """, unsafe_allow_html=True)
