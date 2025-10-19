@@ -52,7 +52,7 @@ def call_deepseek_api(prompt):
     """
     调用DeepSeek API
     """
-    url = "https://api.deepseek.com/v1/chat/completions"
+    url = "https://api.deepseek.com/"
     
     headers = {
         "Content-Type": "application/json",
