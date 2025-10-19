@@ -1,5 +1,5 @@
-# app.py
+ï»¿# app.py
 import streamlit as st
 
-# ×Ô¶¯ÖØ¶¨Ïòµ½Ê×Ò³
-st.switch_page("pages/Ê×Ò³.py")
+# è‡ªåŠ¨é‡å®šå‘åˆ°é¦–é¡µ
+st.switch_page("pages/é¦–é¡µ.py")
