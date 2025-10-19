@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import base64
 
 st.set_page_config(
     page_title="智能农业助手",
@@ -27,32 +28,58 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 检查目标URL是否可访问
-try:
-    response = requests.get("http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV", timeout=5)
-    if response.status_code == 200:
-        st.success("目标URL可访问，正在加载...")
-    else:
-        st.error(f"目标URL返回状态码: {response.status_code}")
-except Exception as e:
-    st.error(f"无法访问目标URL: {e}")
-
-# 嵌入iframe
-st.markdown("""
-<div style="width: 100%; height: 100vh;">
-    <iframe
-        src="http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV"
-        style="width: 100%; height: 100vh; border: none;"
-        frameborder="0"
-        allow="microphone"
-        onload="console.log('iframe加载完成')"
-        onerror="console.log('iframe加载失败')">
-    </iframe>
-</div>
-
-<script>
-    // 在浏览器控制台输出调试信息
-    console.log('开始加载iframe...');
-    console.log('目标URL:', 'http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV');
-</script>
-""", unsafe_allow_html=True)
+# 方法1：使用JavaScript动态创建iframe
+st.components.v1.html("""
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        #chatbotContainer {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="chatbotContainer"></div>
+    
+    <script>
+        // 方法1：使用JavaScript动态创建iframe
+        function createIframe() {
+            const container = document.getElementById('chatbotContainer');
+            const iframe = document.createElement('iframe');
+            iframe.src = "http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV";
+            iframe.style.width = "100%";
+            iframe.style.height = "100vh";
+            iframe.style.border = "none";
+            iframe.allow = "microphone";
+            iframe.referrerPolicy = "no-referrer";
+            
+            container.appendChild(iframe);
+            
+            // 添加错误处理
+            iframe.onload = function() {
+                console.log('Iframe loaded successfully');
+            };
+            
+            iframe.onerror = function() {
+                console.log('Iframe failed to load');
+                // 备用方案：重定向
+                setTimeout(() => {
+                    window.location.href = "http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV";
+                }, 2000);
+            };
+        }
+        
+        // 延迟创建iframe以避免阻塞
+        setTimeout(createIframe, 100);
+    </script>
+</body>
+</html>
+""", height=800)
