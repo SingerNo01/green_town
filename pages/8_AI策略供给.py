@@ -36,18 +36,10 @@ st.markdown("""
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         margin-top: 1rem;
     }
-    .chat-message {
-        padding: 1rem;
-        border-radius: 10px;
-        margin-bottom: 1rem;
-    }
-    .user-message {
-        background: #e3f2fd;
-        border-left: 4px solid #2196f3;
-    }
-    .assistant-message {
-        background: #f3e5f5;
-        border-left: 4px solid #9c27b0;
+    .streaming-text {
+        line-height: 1.8;
+        font-size: 16px;
+        white-space: pre-wrap;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -65,49 +57,97 @@ class AgriculturalAnalyst:
         """发送农业分析请求"""
         url = f"{self.base_url}/chat-messages"
         
+        # 根据API文档构建正确的请求体
         data = {
             "inputs": inputs,
-            "query": "请基于提供的农业信息进行专业的生态产业分析和发展策略规划",
-            "response_mode": "streaming",
-            "user": user_id
+            "query": "请基于提供的农业信息进行专业的生态产业分析和发展策略规划",  # 必需的query字段
+            "response_mode": "streaming",  # 使用流式模式
+            "user": user_id,
+            "auto_generate_name": False  # 可选参数
         }
         
-        if "conversation_id" in st.session_state:
+        # 如果有会话ID，添加到请求中
+        if st.session_state.get('conversation_id'):
             data["conversation_id"] = st.session_state.conversation_id
         
+        st.write("🔍 调试信息 - 请求数据:")
+        st.json(data)
+        
         try:
-            response = requests.post(url, headers=self.headers, json=data, stream=True, timeout=30)
-            response.raise_for_status()
+            response = requests.post(
+                url, 
+                headers=self.headers, 
+                json=data, 
+                stream=True, 
+                timeout=60
+            )
+            
+            st.write(f"🔍 响应状态码: {response.status_code}")
+            
+            if response.status_code != 200:
+                error_detail = response.text
+                st.error(f"❌ API返回错误: {response.status_code} - {error_detail}")
+                yield f"API请求失败: {response.status_code} - {error_detail}", None
+                return
             
             full_response = ""
-            for line in response.iter_lines():
+            conversation_id = None
+            
+            for line in response.iter_lines(decode_unicode=True):
                 if line:
-                    line_str = line.decode('utf-8')
-                    if line_str.startswith('data: '):
+                    if line.startswith('data: '):
                         try:
-                            event_data = json.loads(line_str[6:])
+                            event_data = json.loads(line[6:])  # 去掉 'data: ' 前缀
                             event_type = event_data.get('event')
+                            
+                            st.write(f"🔍 收到事件: {event_type}")
                             
                             if event_type == 'message' and 'answer' in event_data:
                                 chunk = event_data['answer']
                                 full_response += chunk
-                                yield chunk, event_data.get('conversation_id')
+                                # 更新会话ID
+                                if 'conversation_id' in event_data:
+                                    conversation_id = event_data['conversation_id']
+                                yield chunk, conversation_id
                                 
                             elif event_type == 'message_end':
-                                if event_data.get('conversation_id') and not st.session_state.get('conversation_id'):
-                                    st.session_state.conversation_id = event_data['conversation_id']
+                                st.success("✅ 分析完成！")
+                                if 'conversation_id' in event_data:
+                                    conversation_id = event_data['conversation_id']
                                 break
                                 
-                        except json.JSONDecodeError:
+                            elif event_type == 'error':
+                                error_msg = event_data.get('message', '未知错误')
+                                st.error(f"❌ 流式处理错误: {error_msg}")
+                                yield f"错误: {error_msg}", None
+                                break
+                                
+                        except json.JSONDecodeError as e:
+                            st.warning(f"⚠️ JSON解析错误: {e}")
+                            continue
+                        except Exception as e:
+                            st.error(f"❌ 处理事件时出错: {e}")
                             continue
             
+            # 返回最终结果
+            if full_response:
+                yield full_response, conversation_id
+            else:
+                yield "未收到有效响应，请检查API配置。", None
+                
         except requests.exceptions.RequestException as e:
-            yield f"❌ 请求失败: {str(e)}", None
+            error_msg = f"❌ 请求失败: {str(e)}"
+            st.error(error_msg)
+            yield error_msg, None
 
 # 初始化应用
 def init_app():
-    # 配置API密钥（在实际使用中应该从环境变量或配置文件中读取）
+    # 在这里配置您的API密钥
     API_KEY = "app-EL6JUFtLyHKzBCv1ASFRQZNe"  # 请替换为您的实际API密钥
+    
+    if not API_KEY or API_KEY == "your-api-key-here":
+        st.error("⚠️ 请先配置API密钥")
+        return None
     
     return AgriculturalAnalyst(API_KEY)
 
@@ -172,103 +212,112 @@ def main():
     
     with col1:
         st.header("📝 输入信息概览")
-        if submitted and province and city:
-            st.markdown(f"""
-            <div class="input-section">
-                <h4>📍 地理位置</h4>
-                <p><strong>省份:</strong> {province}</p>
-                <p><strong>城市:</strong> {city}</p>
-                <p><strong>县/区:</strong> {village if village else '未填写'}</p>
+        if submitted:
+            if not province or not city or not agri_type:
+                st.warning("⚠️ 请填写省份、城市和农业类型等必填信息")
+            else:
+                st.markdown(f"""
+                <div class="input-section">
+                    <h4>📍 地理位置</h4>
+                    <p><strong>省份:</strong> {province}</p>
+                    <p><strong>城市:</strong> {city}</p>
+                    <p><strong>县/区:</strong> {village if village else '未填写'}</p>
+                    
+                    <h4>🌾 农业信息</h4>
+                    <p><strong>农业类型:</strong> {agri_type}</p>
+                    <p><strong>生产规模:</strong> {production_scale}</p>
+                    <p><strong>特色产品:</strong> {special_prod if special_prod else '未填写'}</p>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                <h4>🌾 农业信息</h4>
-                <p><strong>农业类型:</strong> {agri_type}</p>
-                <p><strong>生产规模:</strong> {production_scale}</p>
-                <p><strong>特色产品:</strong> {special_prod if special_prod else '未填写'}</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # 准备输入数据
-            inputs = {
-                "province": province,
-                "city": city,
-                "village": village,
-                "agri_type": agri_type,
-                "production_scale": production_scale,
-                "special_prod": special_prod
-            }
-            
-            # 执行分析
-            with col2:
-                st.header("💡 分析结果")
-                analysis_placeholder = st.empty()
+                # 准备输入数据 - 确保变量名与提示词模板一致
+                inputs = {
+                    "province": province,
+                    "city": city,
+                    "village": village if village else "",
+                    "agri_type": agri_type,
+                    "production_scale": production_scale,
+                    "special_prod": special_prod if special_prod else ""
+                }
                 
-                with analysis_placeholder.container():
-                    st.markdown("<div class='analysis-result'>", unsafe_allow_html=True)
-                    result_placeholder = st.empty()
-                    full_analysis = ""
+                # 检查API是否初始化
+                if st.session_state.analyst is None:
+                    st.error("❌ API未正确初始化，请检查API密钥配置")
+                    return
+                
+                # 执行分析
+                with col2:
+                    st.header("💡 分析结果")
+                    analysis_placeholder = st.empty()
                     
-                    # 显示加载动画
-                    with result_placeholder:
-                        st.write("🔍 正在分析农业生态产业发展策略...")
-                        progress_bar = st.progress(0)
+                    with analysis_placeholder.container():
+                        st.markdown("<div class='analysis-result'>", unsafe_allow_html=True)
                         
-                        for i in range(100):
-                            progress_bar.progress(i + 1)
-                            time.sleep(0.02)
-                    
-                    # 调用API进行分析
-                    analysis_text = ""
-                    for chunk, conv_id in st.session_state.analyst.send_analysis_request(inputs):
-                        if chunk:
-                            analysis_text += chunk
-                            result_placeholder.markdown(f"<div style='line-height: 1.6;'>{analysis_text}</div>", unsafe_allow_html=True)
+                        # 显示加载状态
+                        status_placeholder = st.empty()
+                        with status_placeholder:
+                            st.info("🔍 正在连接AI分析服务...")
                         
-                        if conv_id and not st.session_state.conversation_id:
-                            st.session_state.conversation_id = conv_id
-                    
-                    # 保存分析结果到历史
-                    if analysis_text:
-                        analysis_record = {
-                            "inputs": inputs,
-                            "analysis": analysis_text,
-                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                            "conversation_id": st.session_state.conversation_id
-                        }
-                        st.session_state.analysis_history.append(analysis_record)
-                    
-                    st.markdown("</div>", unsafe_allow_html=True)
-        
-        elif submitted:
-            st.warning("⚠️ 请至少填写省份、城市和农业类型等必填信息")
+                        # 调用API进行分析
+                        analysis_text = ""
+                        try:
+                            for chunk, conv_id in st.session_state.analyst.send_analysis_request(inputs):
+                                if chunk:
+                                    analysis_text += chunk
+                                    # 清除加载状态，显示实际内容
+                                    status_placeholder.empty()
+                                    st.markdown(f'<div class="streaming-text">{analysis_text}</div>', unsafe_allow_html=True)
+                                
+                                if conv_id and not st.session_state.conversation_id:
+                                    st.session_state.conversation_id = conv_id
+                                    st.sidebar.success(f"会话ID: {conv_id[:8]}...")
+                            
+                            # 保存分析结果到历史
+                            if analysis_text and len(analysis_text) > 10:  # 确保有实际内容
+                                analysis_record = {
+                                    "inputs": inputs,
+                                    "analysis": analysis_text,
+                                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                    "conversation_id": st.session_state.conversation_id
+                                }
+                                st.session_state.analysis_history.append(analysis_record)
+                                st.sidebar.success("✅ 分析已保存到历史记录")
+                            
+                        except Exception as e:
+                            st.error(f"❌ 分析过程中出错: {str(e)}")
+                        
+                        st.markdown("</div>", unsafe_allow_html=True)
     
     # 历史记录部分
     if st.session_state.analysis_history:
         st.markdown("---")
         st.header("📚 分析历史")
         
-        for i, record in enumerate(reversed(st.session_state.analysis_history[-5:]), 1):
+        for i, record in enumerate(reversed(st.session_state.analysis_history[-3:]), 1):
             with st.expander(f"分析记录 {i} - {record['timestamp']}"):
                 st.write("**输入信息:**")
                 st.json(record['inputs'])
                 st.write("**分析结果:**")
                 st.write(record['analysis'])
     
-    # 使用说明
+    # 使用说明和调试信息
     with st.sidebar:
+        st.markdown("---")
+        st.header("🔧 调试信息")
+        if st.session_state.get('conversation_id'):
+            st.write(f"会话ID: `{st.session_state.conversation_id}`")
+        
         st.markdown("---")
         st.header("💡 使用说明")
         st.markdown("""
         1. **填写基本信息**: 选择省份、城市，填写农业相关信息
         2. **提交分析**: 点击"开始分析"按钮
         3. **查看结果**: 在右侧查看专业的生态产业发展策略
-        4. **历史记录**: 查看最近的分析记录
         
-        ### 分析内容涵盖：
-        - 🌍 生态适宜性分析
-        - 💰 产业发展潜力评估  
-        - 🚀 创新发展策略
-        - 📈 市场前景预测
-        - 🌱 可持续发展建议
+        ### 必需字段：
+        - ✅ 省份
+        - ✅ 城市  
+        - ✅ 农业类型
         """)
 
 if __name__ == "__main__":
