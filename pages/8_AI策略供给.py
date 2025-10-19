@@ -1,5 +1,4 @@
 import streamlit as st
-import requests
 
 st.set_page_config(
     page_title="智能农业助手",
@@ -27,22 +26,53 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 尝试获取页面内容并直接显示
-try:
-    response = requests.get("http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV", timeout=10)
-    if response.status_code == 200:
-        # 直接显示HTML内容
-        st.components.v1.html(response.text, height=800, scrolling=True)
-    else:
-        st.error("无法获取页面内容")
-except Exception as e:
-    st.error(f"获取页面内容失败: {e}")
+# 使用meta标签和更宽松的sandbox策略
+st.components.v1.html("""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+    <meta http-equiv="X-Frame-Options" content="ALLOW-FROM http://119.45.173.154">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- 方法1：使用embed标签 -->
+    <embed src="http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV" 
+           style="width:100%; height:100vh; border:none;">
     
-    # 备用：显示重定向按钮
-    st.warning("点击下方按钮直接访问聊天机器人")
-    if st.button("打开聊天机器人"):
-        st.components.v1.html("""
-        <script>
-            window.open("http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV", "_blank");
-        </script>
-        """)
+    <!-- 方法2：备用iframe -->
+    <iframe src="http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV" 
+            style="width:100%; height:100vh; border:none; display:none;"
+            id="backupFrame"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-orientation-lock allow-pointer-lock allow-presentation allow-top-navigation">
+    </iframe>
+    
+    <script>
+        // 检查embed是否工作
+        setTimeout(function() {
+            const embed = document.querySelector('embed');
+            const iframe = document.getElementById('backupFrame');
+            
+            if (!embed || embed.style.visibility === 'hidden') {
+                iframe.style.display = 'block';
+            }
+            
+            // 最终备用方案：显示链接
+            setTimeout(function() {
+                if (!document.querySelector('iframe') && !document.querySelector('embed')) {
+                    document.body.innerHTML = '<div style="padding:20px;text-align:center;"><h3>无法嵌入内容</h3><p><a href="http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV" target="_blank">点击这里直接访问聊天机器人</a></p></div>';
+                }
+            }, 5000);
+        }, 3000);
+    </script>
+</body>
+</html>
+""", height=800)
