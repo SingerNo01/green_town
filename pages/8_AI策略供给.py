@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import base64
 
 st.set_page_config(
     page_title="智能农业助手",
@@ -28,58 +27,22 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 方法1：使用JavaScript动态创建iframe
-st.components.v1.html("""
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden;
-        }
-        #chatbotContainer {
-            width: 100%;
-            height: 100vh;
-        }
-    </style>
-</head>
-<body>
-    <div id="chatbotContainer"></div>
+# 尝试获取页面内容并直接显示
+try:
+    response = requests.get("http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV", timeout=10)
+    if response.status_code == 200:
+        # 直接显示HTML内容
+        st.components.v1.html(response.text, height=800, scrolling=True)
+    else:
+        st.error("无法获取页面内容")
+except Exception as e:
+    st.error(f"获取页面内容失败: {e}")
     
-    <script>
-        // 方法1：使用JavaScript动态创建iframe
-        function createIframe() {
-            const container = document.getElementById('chatbotContainer');
-            const iframe = document.createElement('iframe');
-            iframe.src = "http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV";
-            iframe.style.width = "100%";
-            iframe.style.height = "100vh";
-            iframe.style.border = "none";
-            iframe.allow = "microphone";
-            iframe.referrerPolicy = "no-referrer";
-            
-            container.appendChild(iframe);
-            
-            // 添加错误处理
-            iframe.onload = function() {
-                console.log('Iframe loaded successfully');
-            };
-            
-            iframe.onerror = function() {
-                console.log('Iframe failed to load');
-                // 备用方案：重定向
-                setTimeout(() => {
-                    window.location.href = "http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV";
-                }, 2000);
-            };
-        }
-        
-        // 延迟创建iframe以避免阻塞
-        setTimeout(createIframe, 100);
-    </script>
-</body>
-</html>
-""", height=800)
+    # 备用：显示重定向按钮
+    st.warning("点击下方按钮直接访问聊天机器人")
+    if st.button("打开聊天机器人"):
+        st.components.v1.html("""
+        <script>
+            window.open("http://119.45.173.154/chatbot/Rr8QS2s9GIvD9ndV", "_blank");
+        </script>
+        """)
