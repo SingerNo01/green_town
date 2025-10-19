@@ -2,39 +2,44 @@ import streamlit as st
 
 st.set_page_config(
     page_title="智能农业助手",
-    layout="centered"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
-# 如果iframe无法加载，提供直接访问按钮
-st.title("🤖 智能农业助手")
+st.markdown("""
+<style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .block-container {
+        padding-top: 0;
+        padding-bottom: 0;
+        padding-left: 0;
+        padding-right: 0;
+        max-width: 100%;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-col1, col2 = st.columns([2, 1])
+# 尝试直接访问链接
+st.markdown("""
+<div style="width: 100%; height: 100vh;">
+    <iframe
+        src="https://udify.app/chatbot/6MCrcJyUrhQwiY5P"
+        style="width: 100%; height: 100vh;"
+        frameborder="0"
+        allow="microphone">
+    </iframe>
+</div>
+""", unsafe_allow_html=True)
 
-with col1:
-    st.markdown("""
-    <div style="width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 10px; overflow: hidden;">
-        <iframe
-            src="https://udify.app/chatbot/6MCrcJyUrhQwiY5P"
-            style="width: 100%; height: 100%;"
-            frameborder="0"
-            allow="microphone">
-        </iframe>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col2:
-    st.info("""
-    **如果无法显示聊天窗口：**
-    
-    请点击下方按钮直接访问
-    """)
-    
-    if st.button("🚀 直接访问聊天机器人", use_container_width=True):
-        st.markdown('[点击打开](https://udify.app/chatbot/6MCrcJyUrhQwiY5P)')
-    
-    st.warning("""
-    **可能的原因：**
-    - 网站安全策略限制
-    - 网络连接问题
-    - 浏览器安全设置
-    """)
+# 添加备用访问方式
+st.markdown("""
+<div style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+    <a href="https://udify.app/chatbot/6MCrcJyUrhQwiY5P" target="_blank" 
+       style="background-color: #4CAF50; color: white; padding: 10px 15px; 
+              text-decoration: none; border-radius: 5px; font-size: 14px;">
+        🔗 如果无法显示，点击这里直接访问
+    </a>
+</div>
+""", unsafe_allow_html=True)
