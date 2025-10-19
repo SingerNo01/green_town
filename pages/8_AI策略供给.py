@@ -60,18 +60,14 @@ class AgriculturalAnalyst:
         # 根据API文档构建正确的请求体
         data = {
             "inputs": inputs,
-            "query": "请基于提供的农业信息进行专业的生态产业分析和发展策略规划",  # 必需的query字段
-            "response_mode": "streaming",  # 使用流式模式
+            "query": "请基于提供的农业信息进行专业的生态产业分析和发展策略规划",
+            "response_mode": "streaming",
             "user": user_id,
-            "auto_generate_name": False  # 可选参数
+            "auto_generate_name": False
         }
         
-        # 如果有会话ID，添加到请求中
         if st.session_state.get('conversation_id'):
             data["conversation_id"] = st.session_state.conversation_id
-        
-        st.write("🔍 调试信息 - 请求数据:")
-        st.json(data)
         
         try:
             response = requests.post(
@@ -81,8 +77,6 @@ class AgriculturalAnalyst:
                 stream=True, 
                 timeout=60
             )
-            
-            st.write(f"🔍 响应状态码: {response.status_code}")
             
             if response.status_code != 200:
                 error_detail = response.text
@@ -97,21 +91,17 @@ class AgriculturalAnalyst:
                 if line:
                     if line.startswith('data: '):
                         try:
-                            event_data = json.loads(line[6:])  # 去掉 'data: ' 前缀
+                            event_data = json.loads(line[6:])
                             event_type = event_data.get('event')
-                            
-                            st.write(f"🔍 收到事件: {event_type}")
                             
                             if event_type == 'message' and 'answer' in event_data:
                                 chunk = event_data['answer']
                                 full_response += chunk
-                                # 更新会话ID
                                 if 'conversation_id' in event_data:
                                     conversation_id = event_data['conversation_id']
                                 yield chunk, conversation_id
                                 
                             elif event_type == 'message_end':
-                                st.success("✅ 分析完成！")
                                 if 'conversation_id' in event_data:
                                     conversation_id = event_data['conversation_id']
                                 break
@@ -122,14 +112,12 @@ class AgriculturalAnalyst:
                                 yield f"错误: {error_msg}", None
                                 break
                                 
-                        except json.JSONDecodeError as e:
-                            st.warning(f"⚠️ JSON解析错误: {e}")
+                        except json.JSONDecodeError:
                             continue
                         except Exception as e:
                             st.error(f"❌ 处理事件时出错: {e}")
                             continue
             
-            # 返回最终结果
             if full_response:
                 yield full_response, conversation_id
             else:
@@ -191,10 +179,18 @@ def main():
             village = st.text_input("县/区")
             
             st.subheader("🌾 农业信息")
+            # 根据API要求使用特定的枚举值
             agri_type = st.selectbox(
                 "农业类型",
-                ["", "粮食作物", "经济作物", "蔬菜种植", "水果种植", "畜牧养殖", "水产养殖", 
-                 "林业", "特色农业", "休闲农业", "有机农业", "设施农业"]
+                ["", "种植业", "畜牧业", "林业", "渔业", "混合农业"],
+                format_func=lambda x: {
+                    "": "请选择",
+                    "种植业": "种植业",
+                    "畜牧业": "畜牧业", 
+                    "林业": "林业",
+                    "渔业": "渔业",
+                    "混合农业": "混合农业"
+                }[x]
             )
             
             production_scale = st.selectbox(
@@ -216,6 +212,7 @@ def main():
             if not province or not city or not agri_type:
                 st.warning("⚠️ 请填写省份、城市和农业类型等必填信息")
             else:
+                # 显示输入信息
                 st.markdown(f"""
                 <div class="input-section">
                     <h4>📍 地理位置</h4>
@@ -230,15 +227,19 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # 准备输入数据 - 确保变量名与提示词模板一致
+                # 准备输入数据 - 使用API要求的枚举值
                 inputs = {
                     "province": province,
                     "city": city,
                     "village": village if village else "",
-                    "agri_type": agri_type,
+                    "agri_type": agri_type,  # 直接使用API要求的枚举值
                     "production_scale": production_scale,
                     "special_prod": special_prod if special_prod else ""
                 }
+                
+                # 显示调试信息
+                with st.expander("🔍 调试信息 - 请求数据"):
+                    st.json(inputs)
                 
                 # 检查API是否初始化
                 if st.session_state.analyst is None:
@@ -256,7 +257,11 @@ def main():
                         # 显示加载状态
                         status_placeholder = st.empty()
                         with status_placeholder:
-                            st.info("🔍 正在连接AI分析服务...")
+                            st.info("🔍 正在分析中，请稍候...")
+                            progress_bar = st.progress(0)
+                            for i in range(100):
+                                progress_bar.progress(i + 1)
+                                time.sleep(0.01)
                         
                         # 调用API进行分析
                         analysis_text = ""
@@ -270,10 +275,10 @@ def main():
                                 
                                 if conv_id and not st.session_state.conversation_id:
                                     st.session_state.conversation_id = conv_id
-                                    st.sidebar.success(f"会话ID: {conv_id[:8]}...")
+                                    st.sidebar.success(f"会话已建立")
                             
                             # 保存分析结果到历史
-                            if analysis_text and len(analysis_text) > 10:  # 确保有实际内容
+                            if analysis_text and len(analysis_text) > 10:
                                 analysis_record = {
                                     "inputs": inputs,
                                     "analysis": analysis_text,
@@ -281,7 +286,7 @@ def main():
                                     "conversation_id": st.session_state.conversation_id
                                 }
                                 st.session_state.analysis_history.append(analysis_record)
-                                st.sidebar.success("✅ 分析已保存到历史记录")
+                                st.sidebar.success("✅ 分析已保存")
                             
                         except Exception as e:
                             st.error(f"❌ 分析过程中出错: {str(e)}")
@@ -300,25 +305,28 @@ def main():
                 st.write("**分析结果:**")
                 st.write(record['analysis'])
     
-    # 使用说明和调试信息
+    # 使用说明
     with st.sidebar:
-        st.markdown("---")
-        st.header("🔧 调试信息")
-        if st.session_state.get('conversation_id'):
-            st.write(f"会话ID: `{st.session_state.conversation_id}`")
-        
         st.markdown("---")
         st.header("💡 使用说明")
         st.markdown("""
-        1. **填写基本信息**: 选择省份、城市，填写农业相关信息
-        2. **提交分析**: 点击"开始分析"按钮
-        3. **查看结果**: 在右侧查看专业的生态产业发展策略
+        ### 农业类型说明：
+        - **种植业**: 粮食作物、经济作物、蔬菜水果等
+        - **畜牧业**: 畜牧养殖、家禽养殖等  
+        - **林业**: 林木种植、林产品等
+        - **渔业**: 水产养殖、捕捞等
+        - **混合农业**: 多种农业类型结合
         
         ### 必需字段：
         - ✅ 省份
         - ✅ 城市  
         - ✅ 农业类型
         """)
+        
+        if st.button("🔄 新建对话"):
+            st.session_state.conversation_id = None
+            st.session_state.analysis_history = []
+            st.rerun()
 
 if __name__ == "__main__":
     main()
