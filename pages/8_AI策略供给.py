@@ -9,7 +9,7 @@ st.set_page_config(
     page_title="智能农业生态产业分析助手",
     page_icon="🌱",
     layout="wide",
-    initial_sidebar_state="collapsed"  # 隐藏侧边栏
+    initial_sidebar_state="collapsed"
 )
 
 # 自定义CSS样式
@@ -53,6 +53,10 @@ st.markdown("""
         border-radius: 10px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         margin-bottom: 2rem;
+    }
+    .required-field::after {
+        content: " *";
+        color: red;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -135,7 +139,7 @@ class AgriculturalAnalyst:
 
 # 初始化应用
 def init_app():
-    API_KEY = "app-EL6JUFtLyHKzBCv1ASFRQZNe"  # 使用您提供的API密钥
+    API_KEY = "app-EL6JUFtLyHKzBCv1ASFRQZNe"
     
     if not API_KEY:
         st.error("⚠️ API密钥未配置")
@@ -171,9 +175,9 @@ def main():
     
     with col1:
         # 地理位置信息
-        st.subheader("📍 地理位置")
+        st.markdown('<div class="required-field">📍 地理位置</div>', unsafe_allow_html=True)
         province = st.selectbox(
-            "省份 *",
+            "省份",
             ["", "北京市", "天津市", "河北省", "山西省", "内蒙古自治区", "辽宁省", "吉林省", "黑龙江省",
              "上海市", "江苏省", "浙江省", "安徽省", "福建省", "江西省", "山东省", "河南省", "湖北省",
              "湖南省", "广东省", "广西壮族自治区", "海南省", "重庆市", "四川省", "贵州省", "云南省",
@@ -181,22 +185,24 @@ def main():
              "香港特别行政区", "澳门特别行政区"]
         )
         
-        city = st.text_input("城市 *")
+        city = st.text_input("城市")
         village = st.text_input("县/区")
     
     with col2:
         # 农业信息
-        st.subheader("🌾 农业信息")
+        st.markdown('<div class="required-field">🌾 农业信息</div>', unsafe_allow_html=True)
+        
         # 使用API要求的精确枚举值
         agri_type = st.selectbox(
-            "农业类型 *",
-            ["", "种植业", "畜牧业", "林业", "渔业", "混合农业"],
-            help="请根据API要求选择正确的农业类型"
+            "农业类型",
+            ["", "种植业", "畜牧业", "林业", "渔业", "混合农业"]
         )
         
+        # 使用API要求的生产规模枚举值
         production_scale = st.selectbox(
             "生产规模",
-            ["", "小规模（家庭农场）", "中等规模（合作社）", "大规模（企业化）", "产业化集群"]
+            ["", "小规模(家庭农场)", "中等规模(合作社)", "大规模(农业企业)"],
+            help="请根据API要求选择正确的生产规模"
         )
         
         special_prod = st.text_input("特色产品", placeholder="例如：有机大米、特色水果等")
@@ -239,6 +245,10 @@ def main():
                 "production_scale": production_scale if production_scale else "",
                 "special_prod": special_prod if special_prod else ""
             }
+            
+            # 显示调试信息
+            with st.expander("🔍 调试信息 - 请求数据"):
+                st.json(inputs)
             
             # 检查API是否初始化
             if st.session_state.analyst is None:
