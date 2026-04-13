@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 def main():
-    st.title("稳健熵权法计算工具v1.1")
+    st.title("稳健熵权法计算工具")
     st.markdown("""
     ### 使用说明
     1. 上传包含指标数据的Excel文件
@@ -189,13 +189,6 @@ def standardize_data(df):
         return None
 
     standardized = df.copy()
-    
-    for col in standardized.columns:
-        standardized[col] = pd.to_numeric(standardized[col], errors='coerce')
-    
-    if standardized.isnull().any().any():
-        raise ValueError("数据包含无法转换为数值的非数值内容，请检查输入数据")
-    
     n, m = df.shape
 
     for j in range(m):
@@ -262,9 +255,7 @@ def calculate_entropy_weights(df):
     """计算熵权法权重"""
     if df is None:
         return None
-    
-    df = df.astype(float)
-    
+
     n, m = df.shape
     P = df.copy()
 
@@ -323,9 +314,7 @@ def calculate_topsis(df, weights):
     """计算TOPSIS结果"""
     if df is None or weights is None:
         return None, None
-    
-    df = df.astype(float)
-    
+
     # 根据权重使用选项处理数据
     weight_usage = st.session_state.weight_usage_var
     n, m = df.shape
