@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 def main():
-    st.title("稳健熵权法计算工具")
+    st.title("稳健熵权法计算工具v1.1")
     st.markdown("""
     ### 使用说明
     1. 上传包含指标数据的Excel文件
